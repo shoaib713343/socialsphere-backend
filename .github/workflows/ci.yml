@@ -25,6 +25,9 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Create .env file
+        run: cp .env.example .env
+
       # Step 3: Install all project dependencies
       - name: Install dependencies
         run: npm install
