@@ -1,9 +1,3 @@
-Of course. A great README.md is the front page of your project for recruiters. It needs to be clear, professional, and showcase the quality of your work.
-
-Here is a complete, well-structured README.md file for you to use. It's based on our PRD but formatted to be the perfect introduction to your project on GitHub.
-
-Just copy the entire content below and paste it into the README.md file in your project's root directory.
-
 SocialSphere - A Modern, Real-Time Social Media Backend 🚀
 SocialSphere is a feature-rich, production-grade backend for a modern social media application. Built with a Modular Monolith architecture, this project showcases advanced engineering practices including real-time communication, performance optimization, a complete security suite, and a professional DevOps workflow.
 
