@@ -1,105 +1,141 @@
-Of course. Here is the final, comprehensive PRD and System Design document for our production-grade SocialSphere monolith. You can save this as README.md or PROJECT_BLUEPRINT.md in your project's root directory.
+SocialSphere - A Modern, Real-Time Social Media Backend 🚀
+SocialSphere is a feature-rich, production-grade backend for a modern social media application. Built with a Modular Monolith architecture, this project showcases advanced engineering practices including real-time communication, performance optimization, a complete security suite, and a professional DevOps workflow.
 
-PRD & System Design: SocialSphere (Monolith)
-Version: 2.2
+This project is designed as a portfolio centerpiece to demonstrate a deep understanding of scalable, reliable, and maintainable backend systems.
 
-Date: October 7, 2025
+✨ Core Features
+🔐 Authentication & Security
+Multi-Factor Registration: Sign up with Email/Password, Mobile Number (OTP), or Google (OAuth 2.0).
 
-Project: A real-time, feature-rich, production-grade social media application built with a Modular Monolith architecture.
+Full Verification Flow: Email verification via unique link and mobile verification via SMS OTP.
 
-Part 1: Product Requirements Document (PRD)
-1.1. Introduction & Vision
-SocialSphere is a modern social media platform designed for users to share rich media, interact with content in real-time, and connect through live streaming. Our vision is to build a high-quality, scalable, and performant application that showcases advanced backend engineering practices. This project is designed to be a portfolio centerpiece, demonstrating a deep understanding of performance optimization, real-time systems, advanced security, and professional DevOps workflows, all within a well-structured monolithic architecture.
+Secure JWT Authentication: Uses a robust Access Token and a database-backed Refresh Token system.
 
-1.2. Core & Advanced Features (User Stories)
-Authentication & Security
-As a user, I want to sign up and log in using my email, mobile number, or Google account.
+Secure Password Reset: A full "Forgot Password" flow with expiring, single-use tokens.
 
-As a user signing up with email, I want to receive a verification link to confirm my address.
+Immediate Logout: Implements a token blacklist using Redis for instant session invalidation.
 
-As a user signing up with a mobile number, I want to receive an OTP (One-Time Password) via SMS to verify my number.
+📝 Content & Social Graph
+Rich Media Posts: Create posts with text, images, or videos.
 
-As a user, I want my session managed by secure access and refresh tokens.
+Cloud Media Storage: All media is uploaded to and served from Cloudinary.
 
-As a user, I want to log out, which should immediately invalidate my session, making my accessToken unusable.
+Core Interactions: Users can like, comment on, and follow/unfollow other users.
 
-Content & Interactions
-As a user, I want to create a post with text, an image, or a video.
+Feeds:
 
-As a user, I want to like, comment on, and share posts.
+A public, paginated feed of all posts.
 
-As a user, I want to view a feed of all posts, which should load quickly thanks to server-side caching.
+A personalized feed showing posts only from followed users.
 
-As a user, I want to explore a "Trending" feed, showing posts with the highest engagement.
+A "Trending" feed built with a complex MongoDB Aggregation Pipeline.
 
-Rich Media & Real-Time Systems
-As a user, I want to discover and watch short-form videos in a dedicated "Reels" section.
+A dedicated "Reels" feed for video content.
 
-As a user, I want to start a live stream that other users can join and watch.
+⚡ Real-Time Systems (via Socket.IO)
+One-on-One Chat: Full real-time private messaging.
 
-As a user, I want to receive instant notifications via WebSockets when someone interacts with my content.
+Presence System: See which users are currently online or offline.
 
-As a user, I want to engage in one-on-one real-time chat with online status and typing indicators.
+Typing Indicators: See when another user is typing a message to you.
 
-1.3. Non-Functional Requirements (NFRs)
-Performance: Cached API responses should be under 50ms. Complex database aggregations should be under 300ms.
+Instant Notifications: Receive real-time notifications for new likes and comments.
 
-Scalability: The code will be structured as a Modular Monolith with a clear separation of concerns (services, controllers, models) for maintainability.
+⚙️ Performance & DevOps
+High-Performance Caching: Uses a Redis cache (cache-aside pattern) to dramatically speed up frequent read operations like the main post feed.
 
-Reliability: The application will use structured logging, centralized error handling, and a comprehensive test suite (Unit and Integration tests using Jest & Supertest).
+Automated Testing: A comprehensive integration test suite built with Jest and Supertest.
 
-DevOps: The entire application and its dependencies (Database, Cache) will be fully containerized using Docker and Docker Compose. A full CI/CD pipeline using GitHub Actions will be implemented for automated testing and deployment.
+Containerization: The entire application and its dependencies (MongoDB, Redis) are fully containerized with Docker and Docker Compose.
 
-Part 2: System Design
-2.1. High-Level Design (HLD)
-2.1.1. Architecture: The Modular Monolith
-The system will be a single, deployable Node.js application. The internal code will be highly modular, with each feature (auth, posts, notifications) isolated in its own directory. This provides excellent maintainability while keeping the deployment simple.
+CI/CD Pipeline: An automated GitHub Actions workflow runs all tests on every push to ensure code quality and prevent bugs.
 
-Single Backend Service (Node.js/Express): Handles all REST API endpoints and manages WebSocket connections.
+🏛️ Architecture
+This project is built as a Modular Monolith using TypeScript. The codebase is organized by feature, with a clear separation of concerns between controllers (API layer), services (business logic), and models (data layer). This approach provides the maintainability of microservices while keeping the deployment simple.
 
-Primary Database (MongoDB): The main data store (e.g., MongoDB Atlas).
+🛠️ Tech Stack
+Backend
+Database & Cache
+Real-Time & Authentication
+DevOps & Tools
+🚀 Getting Started
+Prerequisites
+Node.js (v18 or later)
 
-Caching Layer (Redis): An in-memory database for caching API responses and managing the token blacklist.
+Docker Desktop
 
-2.1.2. Technology Stack
-Backend: Node.js, Express.js, TypeScript
+Git
 
-Database: MongoDB with Mongoose
+Installation & Setup
+Clone the repository:
 
-Cache: Redis with ioredis
+Bash
 
-Real-Time: Socket.IO
+git clone https://github.com/your-username/socialsphere-backend.git
+cd socialsphere-backend
+Install dependencies:
 
-Authentication: JWT, bcrypt.js, Passport.js
+Bash
 
-SMS Gateway: Twilio (or similar)
+npm install
+Set up environment variables:
+Create a .env file in the root directory and add the necessary variables. Use the .env.example file as a template.
 
-Media Storage: Cloudinary (or AWS S3)
+Bash
 
-Testing: Jest, Supertest
+cp .env.example .env
+Now, open the .env file and fill in your keys for MongoDB, Cloudinary, Twilio, and Google.
 
-Containerization & DevOps: Docker, Docker Compose, GitHub Actions
+Run the application with Docker Compose:
+This single command will build the Docker image and start the Node.js application, MongoDB database, and Redis cache containers.
 
-2.2. Low-Level Design (LLD)
-2.2.1. Database Schema
-User Schema: Will include username, email, password, provider, phoneNumber, isPhoneVerified, and the hashed refreshToken.
+Bash
 
-Post Schema: Will include type (text, image, video), content, mediaUrl, author (ref to User), likes, shareCount, and comments.
+docker-compose up --build
+The server will be running on http://localhost:8000.
 
-2.2.2. Key System Designs
-Immediate Logout Strategy (Token Blacklist): On logout, the accessToken's unique ID (jti) will be added to a blacklist in Redis. The authentication middleware will check this blacklist on every request to ensure instantly revoked tokens are rejected.
+🧪 Running Tests
+To run the automated integration tests, use the following command:
 
-Caching Strategy (Cache-Aside): The GET /posts endpoint will first check Redis for cached results. If not found, it will query MongoDB, store the result in Redis with an expiration, and then return the data.
+Bash
 
-Testing Strategy (Testing Pyramid): We will focus on writing comprehensive Integration Tests for all API endpoints using Jest and Supertest, supplemented by Unit Tests for complex, isolated business logic.
+npm test
+.env.example
+Code snippet
 
-2.3. Phased Development Plan
-We'll build this ambitious project in manageable phases:
+PORT=8000
 
-Phase 1: Core Foundation (Complete): Monolith setup, full authentication (email/password, JWTs, refresh, logout, protected routes), and basic text-post creation.
+# Use mongodb://mongo:27017/socialsphere for Docker, or your Atlas URI
+MONGO_URI=mongodb://mongo:27017/socialsphere
 
-Phase 2: Performance & Rich Media: Implement Redis caching, add image/video upload capabilities to posts, and build the "Get All Posts" feed.
+# Use redis://redis:6379 for Docker, or redis://localhost:6379 for local Redis
+REDIS_URL=redis://redis:6379
 
-Phase 3: Social & Real-Time: Implement the follow system, a personalized feed, likes, comments, shares, and real-time notifications via WebSockets.
+# JWT Secrets
+ACCESS_TOKEN_SECRET=your-access-token-super-secret
+ACCESS_TOKEN_EXPIRY=15m
+REFRESH_TOKEN_SECRET=your-refresh-token-super-secret
+REFRESH_TOKEN_EXPIRY=7d
 
-Phase 4: Advanced Features & DevOps: Build the "Trending" feed (MongoDB Aggregation), the "Reels" feature, and the full Dockerization and CI/CD pipeline. Live streaming will be a final, advanced goal.
+# Cloudinary Config
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Twilio Config
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+
+# Node Environment
+NODE_ENV=development
+
+# Google OAuth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+
+
+
+
+
