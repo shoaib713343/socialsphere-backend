@@ -7,7 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write .",
-    "test": "npx dotenv -e ./.env.example -- jest",
+    "test": "jest",
     "build": "tsc"
   },
   "keywords": [],
