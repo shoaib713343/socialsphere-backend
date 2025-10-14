@@ -1,0 +1,34 @@
+# .github/workflows/ci.yml
+
+name: SocialSphere CI
+
+# This workflow runs on pushes to the 'main' branch or pull requests to 'main'
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_and_test:
+    # Use the latest version of Ubuntu as our virtual machine
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the code from the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up the correct version of Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # Step 3: Install all project dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4: Run the test suite
+      - name: Run tests
+        run: npm test
