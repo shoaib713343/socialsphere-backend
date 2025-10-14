@@ -13,6 +13,8 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+RUN chmod +x ./node_modules/.bin/tsc
+
 # Compile TypeScript into JavaScript using our new script
 RUN npm run build
 
