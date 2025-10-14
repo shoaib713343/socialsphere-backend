@@ -21,10 +21,11 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Create .env file
-        run: cp .env.example .env
-
       - name: Install dependencies
+        run: npm install
+
+      # This is the important step to re-add
+      - name: Reinstall to fix permissions
         run: npm install
 
       - name: Run tests
