@@ -1,8 +1,8 @@
 import express from 'express';
-import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import './config/passport'
+import cors, { CorsOptions } from 'cors';
 
 import authRouter from './features/auth.route';
 import userRouter from './features/user.route';
@@ -12,8 +12,24 @@ import errorHandler from './middleware/errorHandler';
 
 const app = express();
 
-const corsOptions = {
-  origin: 'http://localhost:5173', // Allow our frontend origin
+const allowedOrigins = [
+  'http://localhost:5173', // For local development
+  'https://socialsphere-frontend-mu.vercel.app' // Your live frontend URL
+];
+
+const corsOptions: CorsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (like mobile apps, Postman, or curl requests)
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    } else {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+  },
   credentials: true, // Allow cookies to be sent
 };
 
