@@ -7,22 +7,20 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json first to leverage Docker's cache
 COPY package*.json ./
 
-# Install ALL dependencies (including dev dependencies needed for compilation)
+# Install ALL dependencies
 RUN npm install
 
 # Copy the rest of the application code
 COPY . .
 
-RUN chmod +x ./node_modules/.bin/tsc
-
-# Compile TypeScript into JavaScript using our new script
+# Compile TypeScript into JavaScript
 RUN npm run build
 
-# Now, we can prune the dev dependencies to keep the final image small
+# Prune the dev dependencies to keep the final image small
 RUN npm prune --production
 
 # Expose the port the app will run on
 EXPOSE 8000
 
-# The command to run the application from the compiled 'dist' folder
+# The command to run the final, compiled application
 CMD [ "node", "dist/server.js" ]

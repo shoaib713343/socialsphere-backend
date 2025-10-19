@@ -15,15 +15,13 @@ const seedDatabase = async () => {
     }
 
     await mongoose.connect(mongoUri);
-    console.log('MongoDB connected for seeding...');
+  
 
     // 1. Clean the database
-    console.log('Cleaning database...');
     await UserModel.deleteMany({});
     await PostModel.deleteMany({});
 
     // 2. Create Users
-    console.log('Creating users...');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('password123', salt);
 
@@ -34,10 +32,8 @@ const seedDatabase = async () => {
     ]);
 
     const [userAlice, userBob, userCharlie] = users;
-    console.log(`${users.length} users created.`);
 
     // 3. Create Posts
-    console.log('Creating posts...');
     const posts = await PostModel.create([
       // Post 1: Very popular, recent
       {
@@ -80,14 +76,11 @@ const seedDatabase = async () => {
         createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
       },
     ]);
-    console.log(`${posts.length} posts created.`);
 
-    console.log('Database seeded successfully! 🌱');
   } catch (error) {
     console.error('Error seeding database:', error);
   } finally {
     await mongoose.disconnect();
-    console.log('MongoDB disconnected.');
   }
 };
 

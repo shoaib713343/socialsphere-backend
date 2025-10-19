@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { Request } from 'express'; // Use the globally typed Request
 import * as postService from './post.service';
-import asyncHandler from '../utils/asyncHandler';
+import asyncHandler from 'express-async-handler';
 import ApiError from '../utils/ApiError';
 import { IUser } from './auth.model';
 import { success } from 'zod';
@@ -118,3 +118,18 @@ export const getVideoReelsHandler = asyncHandler(
   }
 );
 
+export const getPostsByUsernameHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    // The parameter from the URL is now 'username'
+    const { username } = req.params;
+    
+    // Call the new service function that can handle a username
+    const posts = await postService.getPostsByUsername(username);
+    
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      data: posts,
+    });
+  }
+);

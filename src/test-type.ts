@@ -30,29 +30,23 @@ const runTest = async () => {
       throw new Error('MONGO_URI not found in .env file');
     }
     
-    console.log('Connecting to MongoDB...');
     await mongoose.connect(mongoUri);
-    console.log('Connected.');
 
     // Find a user (replace with an email that exists in your DB)
     const userEmail = 'john.doe@example.com'; 
-    console.log(`Searching for user with email: ${userEmail}`);
+
 
     const user: ITestUser | null = await TestUserModel.findOne({ email: userEmail });
 
     if (user) {
-      console.log('User found!');
+
       // THIS IS THE CRITICAL TEST:
       const userIdString = user._id.toString();
-      console.log('Successfully accessed and converted user._id:', userIdString);
-    } else {
-      console.log('User not found.');
     }
   } catch (error) {
     console.error('Test failed:', error);
   } finally {
     await mongoose.disconnect();
-    console.log('Disconnected from MongoDB.');
   }
 };
 

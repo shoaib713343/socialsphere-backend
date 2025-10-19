@@ -2,12 +2,13 @@
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
-import app from '../app';
+import app from '../app'; // We still import the clean app
 import redisClient from '../config/redis';
+import { io } from '../socket'; // We now only import 'io' for cleanup
 import { sendEmail } from '../utils/mail';
-import { httpServer, io } from '../socket';
+import { sendSms } from '../utils/sms';
 
-// Tell Jest to automatically use the fake versions from the __mocks__ folder
+// Mock the external services
 jest.mock('../utils/mail');
 jest.mock('../utils/sms');
 
@@ -24,13 +25,14 @@ describe('Auth API', () => {
     await mongoose.disconnect();
     await mongoServer.stop();
     await redisClient.quit();
-    io.close();
-    httpServer.close();
+    io.close(); // Close the Socket.IO instance
+    // We no longer need to close httpServer here; Supertest handles the app's lifecycle
   });
 
   beforeEach(() => {
-    // Clear the history of our fake functions before each test
+    // Clear mock history before each test
     (sendEmail as jest.Mock).mockClear();
+    (sendSms as jest.Mock).mockClear();
   });
 
   describe('POST /api/v1/auth/register', () => {
@@ -47,7 +49,7 @@ describe('Auth API', () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.body.data.username).toBe('testuser');
-      expect(sendEmail).toHaveBeenCalled(); // Check if the fake email function was called
+      expect(sendEmail).toHaveBeenCalled();
     });
 
     it('should return 409 for a duplicate email', async () => {
@@ -70,7 +72,7 @@ describe('Auth API', () => {
         .send(existingUser);
 
       expect(response.statusCode).toBe(409);
-      expect(sendEmail).not.toHaveBeenCalled(); // Ensure no email was sent on failure
+      expect(sendEmail).not.toHaveBeenCalled();
     });
   });
 });

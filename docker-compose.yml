@@ -4,8 +4,27 @@ services:
     build: .
     ports:
       - '8000:8000'
-    env_file:
-      - ./.env
+    environment:
+      - PORT=8000
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongo:27017/socialsphere
+      - REDIS_URL=redis://redis:6379
+      - ACCESS_TOKEN_SECRET=your-access-token-super-secret
+      - ACCESS_TOKEN_EXPIRY=15m
+      - REFRESH_TOKEN_SECRET=your-refresh-token-super-secret
+      - REFRESH_TOKEN_EXPIRY=7d
+      - CLOUDINARY_CLOUD_NAME=dnj9t0ywp
+      - CLOUDINARY_API_KEY=484661985899812
+      - CLOUDINARY_API_SECRET=ybI4NSGuDNuNVDtuM0X3MGx4RpY
+      - TWILIO_ACCOUNT_SID=AC894f719368b590507d34dced3ca021c3
+      - TWILIO_AUTH_TOKEN=d7b60110d747597561ac8c495119b370
+      - TWILIO_PHONE_NUMBER=+12298000204
+      - GOOGLE_CLIENT_ID=890001697425-f8bk4rjo17a6i7b828tk0srudukq1jbq.apps.googleusercontent.com
+      - GOOGLE_CLIENT_SECRET=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
+      - EMAIL_HOST=sandbox.smtp.mailtrap.io
+      - EMAIL_PORT=2525
+      - EMAIL_USER=a6b83a83badd57
+      - EMAIL_PASS=35f5bbc6b3215b
     restart: always
     depends_on:
       - mongo

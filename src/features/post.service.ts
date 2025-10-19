@@ -61,6 +61,30 @@ export const getAllPosts = async (options: { page: number, limit: number }) => {
         return posts;
 };
 
+export const getPostsByUserId = async (userId: string) => {
+  const posts = await PostModel.find({ author: userId }).sort({ createdAt: -1 });
+  return posts;
+};
+
+export const getPostsByUsername = async (username: string) => {
+  // 1. First, find the user by their username to get their ID.
+  const user = await UserModel.findOne({ username: username });
+  
+  // 2. If no user is found with that username, they can't have posts. Return an empty array.
+  if (!user) {
+    return [];
+  }
+
+  // 3. If the user was found, use their actual _id to find their posts.
+  // We also populate the author and comment details for the frontend.
+  const posts = await PostModel.find({ author: user._id })
+    .sort({ createdAt: -1 })
+    .populate('author', 'username profilePicture')
+    .populate('comments.author', 'username profilePicture');
+    
+  return posts;
+};
+
 export const uploadToCloudinary = (fileBuffer: Buffer): Promise<string> => {
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
@@ -94,6 +118,7 @@ export const getFollowingFeed = async (
     .skip(skip)
     .limit(limit)
     .populate('author', 'username profilePicture')
+    .populate('comments.author', 'username profilePicture');
 
     return posts;
 };
@@ -136,6 +161,8 @@ return { message: 'Post liked succesfully', post: updatedPost };
   }
 };
 
+
+
 export const addCommentToPost = async (
     userId: string,
     postId: string,
@@ -144,31 +171,31 @@ export const addCommentToPost = async (
     const newComment = {
         author: userId,
         text: commentText,
+        createdAt: new Date(), 
     };
 
     const updatedPost = await PostModel.findByIdAndUpdate(
         postId,
         {
-            $push: {comments: newComment}
+            $push: { comments: newComment }
         },
-        {new:true}
-    ).populate('author', 'username');
+        { new: true } 
+    )
+    .populate('author', 'username profilePicture')
+    .populate('comments.author', 'username _id profilePicture'); 
 
+    if (!updatedPost) {
+        throw new ApiError(404, 'Post not found');
+    }
 
-  if (!updatedPost) {
-    throw new ApiError(404, 'Post not found');
-  }
+    if (updatedPost.author.toString() !== userId) {
+        const notificationData = {
+            message: `A user commented on your post.`,
+        };
+        io.to(updatedPost.author.toString()).emit('newNotification', notificationData);
+    }
 
-  if(updatedPost.author.toString() !== userId) {
-    const notificationData = {
-        type: 'comment',
-        message: `A user commented on your post.`,
-        postId: updatedPost._id,
-        postContent: updatedPost.content.substring(0, 30)
-    };
-    io.to(updatedPost.author.toString()).emit('newNotification', notificationData);
-  }
-  return updatedPost;
+    return updatedPost;
 };
 
 export const getTrendingPosts = async () => {
@@ -246,8 +273,8 @@ export const getVideoReels = async (options: {page: number; limit: number}) => {
     .sort({ createdAt: -1  })
     .skip(skip)
     .limit(limit)
-    .populate('author', 'username profilePicture');
-
+    .populate('author', 'username profilePicture')
+    .populate('comments.author', 'username profilePicture');
     return reels;
 };
 

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import * as chatService from './chat.service'
-import asyncHandler from "../utils/asyncHandler";
+import asyncHandler from 'express-async-handler';
 import { IUser } from './auth.model';
 
 export const getChatHistoryHandler = asyncHandler(
@@ -19,4 +19,21 @@ export const getChatHistoryHandler = asyncHandler(
       data: messages,
     });
   }
-)
+);
+
+export const getConversationsHandler = asyncHandler(
+  async (req: Request, res: Response) => {
+    const currentUser = req.user as IUser;
+    const currentUserId = currentUser.id;
+
+    const conversations = await chatService.getConversations(
+      currentUserId.toString()
+    );
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      data: conversations,
+    });  
+  }
+);

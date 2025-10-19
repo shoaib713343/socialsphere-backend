@@ -10,6 +10,7 @@ passport.use(
         clientID: config.google.clientId,
         clientSecret: config.google.clientSecret,
         callbackURL: '/api/v1/auth/google/callback',
+        proxy: true,
         },
         async (accessToken, refreshAccessToken, profile, done) => {
             try {
@@ -21,7 +22,8 @@ passport.use(
                 const newUser = await UserModel.create({
                     username: profile.displayName.replace(/\s/g, '').toLowerCase() + Math.floor(Math.random() * 1000),
                     email: profile.emails?.[0].value,
-                    provider: 'google'
+                    provider: 'google',
+                    isEmailVerified: true,
                 });
                 return done(null, newUser);
                 }

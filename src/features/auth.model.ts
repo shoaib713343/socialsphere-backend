@@ -10,6 +10,7 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   provider: 'google' | 'email';
+  profilePicture?: string;
   isEmailVerified: boolean;
   emailVerificationToken?: string;
   emailVerificationExpiry?: Date;
@@ -33,6 +34,7 @@ const userSchema = new Schema<IUser>(
     username: { type: String, required: true, unique: true, trim: true, index: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: false, select: false },
+    profilePicture: { type: String },
     provider: { type: String, enum: ['google', 'email'], default: 'email' },
     refreshToken: { type: String },
     isEmailVerified: {

@@ -33,7 +33,12 @@ const config = {
     clientId: getEnvVar('GOOGLE_CLIENT_ID'),
     clientSecret: getEnvVar('GOOGLE_CLIENT_SECRET'),
   },
-
+   email: {
+    host: getEnvVar('EMAIL_HOST'),
+    port: parseInt(getEnvVar('EMAIL_PORT'), 10),
+    user: getEnvVar('EMAIL_USER'),
+    pass: getEnvVar('EMAIL_PASS'),
+  },
 };
 
 export default config;

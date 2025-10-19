@@ -1,33 +1,35 @@
+// src/utils/mail.ts
 import nodemailer from 'nodemailer';
+import config from '../config';
 import logger from './logger';
 
+// Create a reusable transporter object using Mailtrap's SMTP details
+const transporter = nodemailer.createTransport({
+  host: config.email.host,
+  port: config.email.port,
+  auth: {
+    user: config.email.user, // Your Mailtrap username
+    pass: config.email.pass, // Your Mailtrap password
+  },
+});
+
 export const sendEmail = async (options: {
-    to: string;
-    subject: string;
-    html: string;
+  to: string;
+  subject: string;
+  html: string;
 }) => {
-    const testAccount = await nodemailer.createTestAccount();
-
-     const transporter = nodemailer.createTransport({
-    host: testAccount.smtp.host,
-    port: testAccount.smtp.port,
-    secure: testAccount.smtp.secure,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
-
-    const mailOptions = {
-    from: '"SocialSphere" <noreply@socialsphere.com>',
+  const mailOptions = {
+    from: `"SocialSphere" <from@socialsphere.com>`, // A generic sender address
     to: options.to,
     subject: options.subject,
     html: options.html,
   };
 
-  const info = await transporter.sendMail(mailOptions);
-
-  logger.info(`Email sent: ${info.messageId}`);
-  logger.info(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
-
-}
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.info(`Email sent to Mailtrap successfully: ${info.messageId}`);
+  } catch (error) {
+    logger.error(`Email failed to send to Mailtrap`, error);
+    throw new Error('Email sending failed.');
+  }
+};
