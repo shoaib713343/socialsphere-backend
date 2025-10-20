@@ -7,6 +7,12 @@ import crypto from 'crypto';
 import ApiError from '../utils/ApiError';
 import config from '../config';
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production', // Will be true on Render (HTTPS)
+  sameSite: 'none' as const, 
+};
+
 export const registerUserHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const newUser = await authService.registerUser(req.body);
@@ -22,10 +28,6 @@ export const registerUserHandler = asyncHandler(
 export const loginUserHandler = asyncHandler(
   async (req: Request, res: Response) => {
     const { user, accessToken, refreshToken } = await authService.loginUser(req.body);
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    };
     res
       .status(200)
       .cookie('refreshToken', refreshToken, cookieOptions)
@@ -58,10 +60,6 @@ export const logoutUserHandler = asyncHandler(
     const user = req.user as IUser;
     await authService.logoutUser(user._id.toString());
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    };
     res
       .status(200)
       .clearCookie('refreshToken', cookieOptions)
@@ -86,10 +84,6 @@ export const verifyEmailHandler = asyncHandler(
     user.refreshToken = hashedRefreshToken;
     await user.save({ validateBeforeSave: false });
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    };
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
     // Redirect to the frontend's login success page with the new accessToken
@@ -105,11 +99,6 @@ export const loginSuccessHandler = asyncHandler(
     const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
     user.refreshToken = hashedRefreshToken;
     await user.save({ validateBeforeSave: false });
-
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-    };
     res.cookie('refreshToken', refreshToken, cookieOptions);
     res.redirect(`${config.frontendUrl}/login-success?token=${accessToken}`);
   }
