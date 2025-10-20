@@ -1,38 +1,34 @@
+// src/app.ts
 import express from 'express';
+import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
 import passport from 'passport';
-import './config/passport'
-import cors, { CorsOptions } from 'cors';
-
-import authRouter from './features/auth.route';
-import userRouter from './features/user.route';
-import postRouter from './features/post.route';
-import chatRouter from './features/chat.route';
-import errorHandler from './middleware/errorHandler';
+import { errorHandler } from './middleware/errorHandler';
+import authRoutes from './features/auth.route';
+import postRoutes from './features/post.route';
+import userRoutes from './features/user.route';
+import chatRoutes from './features/chat.route';
+import './config/passport';
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 const allowedOrigins = [
-  'http://localhost:5173', // For local development
+  'http://localhost:5173',
   'https://socialsphere-frontend.vercel.app',
-  'https://socialsphere-frontend-git-main-shoaib713343s-projects.vercel.app',
-  'https://socialsphere-frontend-o89e1x4ec-shoaib713343s-projects.vercel.app'
+  'https://socialsphere-frontend-git-main-shoaib713343s-projects.vercel.app'
 ];
 
 const corsOptions: CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps, Postman, or curl requests)
-    if (!origin) {
-      return callback(null, true);
-    }
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      return callback(null, true);
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
     } else {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+      callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true, // Allow cookies to be sent
+  credentials: true,
 };
 
 app.use(cors(corsOptions));
@@ -40,15 +36,14 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
 
-app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/users', userRouter);
-app.use('/api/v1/posts', postRouter);
-app.use('/api/v1/chats', chatRouter);
-
-
+// API ROUTES
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/posts', postRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/chats', chatRoutes);
 app.get('/api/v1/health', (req, res) => res.status(200).json({ status: 'UP' }));
 
+// ERROR HANDLING
 app.use(errorHandler);
 
 export default app;
-
