@@ -3,7 +3,7 @@ import express from 'express';
 import cors, { CorsOptions } from 'cors';
 import cookieParser from 'cookie-parser';
 import passport from 'passport';
-import { errorHandler } from './middleware/errorHandler';
+import errorHandler from './middleware/errorHandler';
 import authRoutes from './features/auth.route';
 import postRoutes from './features/post.route';
 import userRoutes from './features/user.route';
