@@ -1,29 +1,27 @@
-// src/socket.ts
-import { Server } from 'socket.io';
-import { CorsOptions } from 'cors';
 
-// --- THIS IS THE FIX ---
-// We create the same "allowed list" that we have in app.ts
+import { Server } from 'socket.io';
+
 const allowedOrigins = [
-  'http://localhost:5173', // For local development
+  'http://localhost:5173',
   'https://socialsphere-frontend.vercel.app',
+  'https://socialsphere-frontend-mu.vercel.app',
   'https://socialsphere-frontend-git-main-shoaib713343s-projects.vercel.app'
-  // Add any other Vercel preview URLs if needed
 ];
 
-const corsOptions: CorsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ["GET", "POST"],
-};
-
 export const io = new Server({
-  cors: corsOptions, // Use the new, smarter CORS options
+  // --- THIS IS THE FIX ---
+  // We explicitly tell Socket.IO how to handle connections, especially behind a proxy like Render.
+  cors: {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS for Socket.IO'));
+      }
+    },
+    credentials: true,
+  },
+  // This tells the server to prioritize the WebSocket protocol, which is essential for Render.
+  transports: ['websocket', 'polling'],
 });
 // --- END OF FIX ---
