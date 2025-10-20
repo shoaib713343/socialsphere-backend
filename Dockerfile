@@ -7,17 +7,15 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json first to leverage Docker's cache
 COPY package*.json ./
 
-# Install ALL dependencies
-RUN npm install
+# --- THIS IS THE FIX ---
+# Install ONLY the production dependencies, omitting dev dependencies
+RUN npm install --omit=dev
 
 # Copy the rest of the application code
 COPY . .
 
 # Compile TypeScript into JavaScript
 RUN npm run build
-
-# Prune the dev dependencies to keep the final image small
-RUN npm prune --production
 
 # Expose the port the app will run on
 EXPOSE 8000
