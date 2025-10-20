@@ -8,14 +8,18 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # --- THIS IS THE FIX ---
-# Install ONLY the production dependencies, omitting dev dependencies
-RUN npm install --omit=dev
+# Step 1: Install ALL dependencies, including the dev tools needed for building.
+RUN npm install
 
 # Copy the rest of the application code
 COPY . .
 
-# Compile TypeScript into JavaScript
+# Step 2: Use the installed tools (like tsc) to build the project.
 RUN npm run build
+
+# Step 3: After building, remove the dev tools to make the final image smaller.
+RUN npm prune --production
+# --- END OF FIX ---
 
 # Expose the port the app will run on
 EXPOSE 8000
