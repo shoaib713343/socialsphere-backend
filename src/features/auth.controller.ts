@@ -5,6 +5,7 @@ import * as authService from './auth.service';
 import { IUser } from './auth.model';
 import crypto from 'crypto';
 import ApiError from '../utils/ApiError';
+import config from '../config';
 
 export const registerUserHandler = asyncHandler(
   async (req: Request, res: Response) => {
@@ -92,7 +93,7 @@ export const verifyEmailHandler = asyncHandler(
     res.cookie('refreshToken', refreshToken, cookieOptions);
 
     // Redirect to the frontend's login success page with the new accessToken
-    res.redirect(`http://localhost:5173/login-success?token=${accessToken}`);
+    res.redirect(`${config.frontendUrl}/login-success?token=${accessToken}`);
   }
 );
 
@@ -110,7 +111,7 @@ export const loginSuccessHandler = asyncHandler(
       secure: process.env.NODE_ENV === 'production',
     };
     res.cookie('refreshToken', refreshToken, cookieOptions);
-    res.redirect(`http://localhost:5173/login-success?token=${accessToken}`);
+    res.redirect(`${config.frontendUrl}/login-success?token=${accessToken}`);
   }
 );
 

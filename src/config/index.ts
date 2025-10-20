@@ -39,6 +39,8 @@ const config = {
     user: getEnvVar('EMAIL_USER'),
     pass: getEnvVar('EMAIL_PASS'),
   },
+  frontendUrl: getEnvVar('FRONTEND_URL'),
+  backendUrl: getEnvVar('BACKEND_URL'),
 };
 
 export default config;

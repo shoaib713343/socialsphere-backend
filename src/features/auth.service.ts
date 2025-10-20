@@ -22,7 +22,7 @@ export const registerUser = async (userData: Record<string, any>) => {
   const verificationToken = user.generateEmailVerificationToken();
   await user.save({ validateBeforeSave: false });
 
-  const verificationUrl = `http://localhost:${process.env.PORT}/api/v1/auth/verify-email?token=${verificationToken}`;
+  const verificationUrl = `${config.backendUrl}/api/v1/auth/verify-email?token=${verificationToken}`;
   const message = `<p>Please verify your email by clicking this link: <a href="${verificationUrl}">${verificationUrl}</a></p>`;
 
   try {
@@ -215,8 +215,8 @@ export const forgotPassword = async (email: string) => {
   await user.save({ validateBeforeSave: false });
 
   try {
-    const resetUrl = `http://localhost:8000/api/v1/auth/reset-password/${resetToken}`;
-    const message = `<p>You requested a password reset. Please click this link: <a href="${resetUrl}">${resetUrl}</a></p>`;
+    const resetUrl = `${config.frontendUrl}/reset-password/${resetToken}`;
+    const message = `<p>You requested a password reset. Click this link: <a href="${resetUrl}">${resetUrl}</a></p>`;
     await sendEmail({
       to: user.email,
       subject: 'SocialSphere - Password Reset Request',
@@ -258,8 +258,8 @@ export const resendVerificationEmail = async (userId: string) => {
   const verificationToken = user.generateEmailVerificationToken();
   await user.save({ validateBeforeSave: false });
 
-  const verificationUrl = `http://localhost:${process.env.PORT}/api/v1/auth/verify-email?token=${verificationToken}`;
-  const message = `<p>Please verify your email by clicking this new link: <a href="${verificationUrl}">${verificationUrl}</a></p>`;
+  const verificationUrl = `${config.backendUrl}/api/v1/auth/verify-email?token=${verificationToken}`;
+  const message = `<p>Here is your new verification link: <a href="${verificationUrl}">${verificationUrl}</a></p>`;
 
   try {
     await sendEmail({
