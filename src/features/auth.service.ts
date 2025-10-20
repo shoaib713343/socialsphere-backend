@@ -48,9 +48,17 @@ export const generateAccessAndRefreshTokens = async (userId: string) => {
   if (!user) {
     throw new ApiError(404, 'User not found');
   }
-  
+  const accessTokenPayload = { 
+    _id: user._id, 
+    username: user.username, 
+    email: user.email,
+    isEmailVerified: user.isEmailVerified,
+    following: user.following || [], // Ensure 'following' is always an array
+    followers: user.followers || [], // Ensure 'followers' is always an array
+    profilePicture: user.profilePicture || ''
+  };
   const accessToken = jwt.sign(
-    { _id: user._id, username: user.username, isEmailVerified: user.isEmailVerified },
+    accessTokenPayload,
     config.jwt.accessTokenSecret,
     { expiresIn: config.jwt.accessTokenExpiry }
   );
@@ -62,55 +70,32 @@ export const generateAccessAndRefreshTokens = async (userId: string) => {
 
 export const loginUser = async (loginData: Record<string, any>) => {
   const { email, password } = loginData;
-
   const user: IUser | null = await UserModel.findOne({ email }).select('+password');
-
-  if (!user) {
-    throw new ApiError(401, 'Invalid email or password');
-  }
-
+  if (!user) { throw new ApiError(401, 'Invalid email or password'); }
   const isPasswordCorrect = await user.isPasswordCorrect(password);
-  if (!isPasswordCorrect) {
-    throw new ApiError(401, 'Invalid email or password');
-  }
-
+  if (!isPasswordCorrect) { throw new ApiError(401, 'Invalid email or password'); }
+  
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id.toString());
-
-  const hashedRefreshToken = crypto
-    .createHash('sha256')
-    .update(refreshToken)
-    .digest('hex');
-
+  const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
   user.refreshToken = hashedRefreshToken;
   await user.save({ validateBeforeSave: false });
 
-  const userObject = user.toObject();
-  delete userObject.password;
-  delete userObject.refreshToken;
+  const userFromToken = jwt.decode(accessToken);
 
-  return { user: userObject, accessToken, refreshToken };
+  return { user: userFromToken, accessToken, refreshToken };
 };
 
 export const refreshAccessToken = async (token: string) => {
-  if (!token) {
-    throw new ApiError(401, 'Unauthorized: No refresh token provided');
-  }
+  if (!token) { throw new ApiError(401, 'Unauthorized: No refresh token provided'); }
   const decoded = jwt.verify(token, config.jwt.refreshTokenSecret) as { _id: string };
   const user = await UserModel.findById(decoded._id);
-  if (!user) {
-    throw new ApiError(401, 'Unauthorized: Invalid refresh token');
-  }
+  if (!user) { throw new ApiError(401, 'Unauthorized: Invalid refresh token'); }
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-  if (user.refreshToken !== hashedToken) {
-    throw new ApiError(401, 'Unauthorized: Refresh token has expired or is invalid');
-  }
-  // Also include the verification status when refreshing the token
-  const newAccessToken = jwt.sign(
-    { _id: user._id, username: user.username, isEmailVerified: user.isEmailVerified },
-    config.jwt.accessTokenSecret,
-    { expiresIn: config.jwt.accessTokenExpiry }
-  );
-  return { accessToken: newAccessToken };
+  if (user.refreshToken !== hashedToken) { throw new ApiError(401, 'Unauthorized: Refresh token has expired or is invalid'); }
+  
+  // Use the central function to guarantee a complete token is always created
+  const { accessToken } = await generateAccessAndRefreshTokens(user._id.toString());
+  return { accessToken };
 };
 export const logoutUser = async (userId: string) => {
   await UserModel.findByIdAndUpdate(userId, { $unset: { refreshToken: 1 } });
@@ -145,28 +130,18 @@ export const toggleFollowUser = async (currentUserId: string, targetUserId: stri
 // --- THIS FUNCTION IS THE MAIN CHANGE ---
 export const verifyEmail = async (token: string) => {
   const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
   const user = await UserModel.findOne({
     emailVerificationToken: hashedToken,
     emailVerificationExpiry: { $gt: Date.now() },
   });
-
-  if (!user) {
-    throw new ApiError(400, 'Invalid or expired verification token');
-  }
-
+  if (!user) { throw new ApiError(400, 'Invalid or expired verification token'); }
   user.isEmailVerified = true;
   user.emailVerificationToken = undefined;
   user.emailVerificationExpiry = undefined;
   await user.save();
-
-  // After verifying, generate new tokens for immediate login
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id.toString());
-  
-  // Return everything the controller needs to log the user in
   return { user, accessToken, refreshToken };
 };
-// --- END OF CHANGE ---
 
 export const addPhoneAndSendOtp = async (userId: string, phoneNumber: string) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString(); 
