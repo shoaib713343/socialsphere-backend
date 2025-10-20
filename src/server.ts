@@ -1,4 +1,3 @@
-// src/server.ts
 import dotenv from 'dotenv';
 import http from 'http';
 import app from './app';
@@ -15,8 +14,7 @@ io.attach(httpServer);
 connectDB();
 initializeSocketHandlers(io);
 
-httpServer.listen(PORT, () => {
-  // Use the production URL in logs if available
+httpServer.listen(Number(PORT), '0.0.0.0', () => {
   const serverUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
   logger.info(`🚀 Server (and Socket.IO) running on ${serverUrl}`);
 });
