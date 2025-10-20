@@ -14,7 +14,9 @@ const app = express();
 
 const allowedOrigins = [
   'http://localhost:5173', // For local development
-  'https://socialsphere-frontend-mu.vercel.app' // Your live frontend URL
+  'https://socialsphere-frontend.vercel.app',
+  'https://socialsphere-frontend-git-main-shoaib713343s-projects.vercel.app',
+  'https://socialsphere-frontend-o89e1x4ec-shoaib713343s-projects.vercel.app'
 ];
 
 const corsOptions: CorsOptions = {
