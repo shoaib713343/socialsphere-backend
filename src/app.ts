@@ -16,6 +16,7 @@ app.set('trust proxy', 1);
 
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:3000',
   'https://socialsphere-frontend.vercel.app',
   'https://socialsphere-frontend-git-main-shoaib713343s-projects.vercel.app'
 ];
