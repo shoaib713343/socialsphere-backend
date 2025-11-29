@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { protect } from '../middleware/auth.middleware';
 import validate from '../middleware/validate';
 import { addCommentSchema, createPostSchema } from './post.validation';
-import { addCommentHandler, createPostHandler, getAllPostsHandler, getFollowingFeedHandler, getPostsByUsernameHandler, getTrendingPostsHandler, getVideoReelsHandler, toggleLikePostHandler } from './post.controller';
+import { addCommentHandler, createPostHandler, deletePostHandler, getAllPostsHandler, getFollowingFeedHandler, getPostsByUsernameHandler, getTrendingPostsHandler, getVideoReelsHandler, toggleLikePostHandler } from './post.controller';
 import { upload } from '../middleware/multer.middleware';
 import { getTrendingPosts } from './post.service';
 
@@ -16,6 +16,7 @@ router.post('/:postId/like', protect, toggleLikePostHandler);
 router.post('/:postId/comments', protect, validate(addCommentSchema), addCommentHandler);
 router.get('/trending', getTrendingPostsHandler);
 router.get('/reels', getVideoReelsHandler);
+router.delete('/:postId', deletePostHandler);
 
 
 export default router;

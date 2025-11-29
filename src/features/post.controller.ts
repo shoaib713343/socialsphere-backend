@@ -133,3 +133,16 @@ export const getPostsByUsernameHandler = asyncHandler(
     });
   }
 );
+
+export const deletePostHandler = asyncHandler(async (req: Request, res: Response) => {
+  const { postId } = req.params;
+  const userId = (req.user as IUser)._id;
+  
+  const result = await postService.deletePost(postId, userId.toString());
+  
+  res.status(200).json({ 
+    success: true, 
+    statusCode: 200, 
+    message: result.message 
+  });
+});
