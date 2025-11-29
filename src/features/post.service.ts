@@ -259,22 +259,34 @@ export const getVideoReels = async (options: {page: number; limit: number}) => {
 };
 
 export const deletePost = async (postId: string, userId: string) => {
+  console.log(`[DEBUG] Attempting to delete post: ${postId} by user: ${userId}`);
+
   const post = await PostModel.findById(postId);
   
   if (!post) {
+    console.log("[DEBUG] Post not found");
     throw new ApiError(404, 'Post not found');
   }
 
+  // Debug: See what is inside the post object
+  console.log("[DEBUG] Post found. Author is:", post.author);
+
+  // Ghost Post Check
   if (!post.author) {
+      console.log("[DEBUG] Author is null. Deleting ghost post.");
       await PostModel.findByIdAndDelete(postId);
       return { message: 'Ghost post deleted successfully' };
   }
 
-  if (post.author.toString() !== userId.toString()) {
+  // Authorization Check
+  // We use String() to be extra safe against undefined/null
+  if (String(post.author) !== String(userId)) {
+    console.log(`[DEBUG] Auth failed. Post Author: ${post.author}, Request User: ${userId}`);
     throw new ApiError(403, 'You are not authorized to delete this post');
   }
 
   await PostModel.findByIdAndDelete(postId);
+  console.log("[DEBUG] Delete successful");
   
   return { message: 'Post deleted successfully' };
 };
