@@ -1,7 +1,7 @@
 import { UserModel } from './auth.model';
 import { NotificationModel } from './notification.model';
 import ApiError from '../utils/ApiError';
-import uploadToCloudinary from '../config/cloudinary';
+import { uploadToCloudinary } from '../config/cloudinary'; // Correct Import now
 
 export const getUserByUsername = async (username: string) => {
   const user = await UserModel.findOne({ username });
@@ -32,7 +32,6 @@ export const updateUserProfilePicture = async (userId: string, file: Express.Mul
   return updatedUser;
 };
 
-// --- NEW NOTIFICATION FUNCTIONS ---
 export const getUserNotifications = async (userId: string) => {
     const notifications = await NotificationModel.find({ recipient: userId })
       .sort({ createdAt: -1 })

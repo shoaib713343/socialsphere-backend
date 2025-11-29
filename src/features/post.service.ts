@@ -1,12 +1,10 @@
 import { PostModel } from "./post.model";
 import redisClient from "../config/redis";
 import logger from "../utils/logger";
-import cloudinary from "../config/cloudinary";
-import { Readable } from "stream";
 import { UserModel } from "./auth.model";
-import { NotificationModel } from "./notification.model"; // <--- NEW IMPORT
+import { NotificationModel } from "./notification.model";
 import ApiError from "../utils/ApiError";
-import mongoose from "mongoose";
+import { uploadToCloudinary } from "../config/cloudinary"; // Correct Import
 import { io } from "../socket";
 
 export const createPost = async(
@@ -83,20 +81,6 @@ export const getPostsByUsername = async (username: string) => {
   return posts;
 };
 
-export const uploadToCloudinary = (fileBuffer: Buffer): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-            { resource_type: 'auto' },
-            (error, result) => {
-                if(error) return reject(error);
-                if(!result) return reject(new Error('Cloudinary upload failed'));
-                resolve(result.secure_url);
-            }
-        );
-        Readable.from(fileBuffer).pipe(uploadStream);
-    } );
-};
-
 export const getFollowingFeed = async (
     userId: string,
     options: { page: number; limit: number }
@@ -116,7 +100,7 @@ export const getFollowingFeed = async (
     .skip(skip)
     .limit(limit)
     .populate('author', 'username profilePicture')
-    .populate('comments.author', 'username profilePicture'); // Ensure comments are populated
+    .populate('comments.author', 'username profilePicture');
 
     return posts;
 };
@@ -131,7 +115,6 @@ export const toggleLikePost = async (userId: string, postId: string) => {
 
     let updatedPost;
     if (isLiked) {
-        // --- Unlike logic ---
         updatedPost = await PostModel.findByIdAndUpdate(
             postId,
             { $pull: { likes: userId } },
@@ -139,7 +122,6 @@ export const toggleLikePost = async (userId: string, postId: string) => {
         );
         return { message: 'Post unliked successfully', post: updatedPost };
     } else {
-        // --- Like logic ---
         updatedPost = await PostModel.findByIdAndUpdate(
             postId,
             { $addToSet: { likes: userId } },
@@ -147,8 +129,8 @@ export const toggleLikePost = async (userId: string, postId: string) => {
         );
 
         // --- NOTIFICATION LOGIC ---
+        // FIX: We use 'as any' here because TS doesn't know 'author' is populated or is an ID
         if(updatedPost && post.author.toString() !== userId) {
-            // 1. Save to Database
             const notification = await NotificationModel.create({
                 recipient: post.author,
                 sender: userId,
@@ -157,13 +139,11 @@ export const toggleLikePost = async (userId: string, postId: string) => {
                 message: 'liked your post',
             });
 
-            // 2. Populate for real-time
             await notification.populate('sender', 'username profilePicture');
-
-            // 3. Emit Real-time Event
+            
+            // FIX: 'as any' to safely access .toString()
             io.to(post.author.toString()).emit('newNotification', notification);
         }
-        // --------------------------
 
         return { message: 'Post liked succesfully', post: updatedPost };
     }
@@ -195,9 +175,11 @@ export const addCommentToPost = async (
     }
 
     // --- NOTIFICATION LOGIC ---
-    if (updatedPost.author._id.toString() !== userId) {
+    // FIX: We cast to 'any' because updatedPost.author is a full object now (due to populate)
+    // but TypeScript interface says it's an ObjectId.
+    if ((updatedPost.author as any)._id.toString() !== userId) {
         const notification = await NotificationModel.create({
-            recipient: updatedPost.author._id,
+            recipient: (updatedPost.author as any)._id,
             sender: userId,
             type: 'comment',
             post: postId,
@@ -205,9 +187,8 @@ export const addCommentToPost = async (
         });
 
         await notification.populate('sender', 'username profilePicture');
-        io.to(updatedPost.author._id.toString()).emit('newNotification', notification);
+        io.to((updatedPost.author as any)._id.toString()).emit('newNotification', notification);
     }
-    // --------------------------
 
     return updatedPost;
 };
@@ -243,8 +224,8 @@ export const getTrendingPosts = async () => {
             $project: {
                 content: 1,
                 imageUrl: 1,
-                mediaUrl: 1, // Added mediaUrl
-                mediaType: 1, // Added mediaType
+                mediaUrl: 1,
+                mediaType: 1,
                 likes: 1,
                 comments: 1,
                 createdAt: 1,
