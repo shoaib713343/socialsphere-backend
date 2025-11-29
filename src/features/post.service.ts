@@ -4,6 +4,7 @@ import logger from "../utils/logger";
 import cloudinary from "../config/cloudinary";
 import { Readable } from "stream";
 import { UserModel } from "./auth.model";
+import { NotificationModel } from "./notification.model"; // <--- NEW IMPORT
 import ApiError from "../utils/ApiError";
 import mongoose from "mongoose";
 import { io } from "../socket";
@@ -39,7 +40,6 @@ export const getAllPosts = async (options: { page: number, limit: number }) => {
     const skip = (page-1) * limit;
 
     const cacheKey = `posts:page:${page}:limit:${limit}`;
-
     const cachedPosts = await redisClient.get(cacheKey);
 
     if(cachedPosts) {
@@ -49,34 +49,32 @@ export const getAllPosts = async (options: { page: number, limit: number }) => {
 
     logger.info('Cache MISS for key' + cacheKey);
 
-
     const posts = await PostModel.find()
         .sort({createdAt: -1})
         .skip(skip)
         .limit(limit)
-        .populate('author', 'username profilePicture');
+        .populate('author', 'username profilePicture')
+        .populate('comments.author', 'username profilePicture');
 
-        await redisClient.set(cacheKey, JSON.stringify(posts), 'EX', 60);
-
-        return posts;
+    await redisClient.set(cacheKey, JSON.stringify(posts), 'EX', 60);
+    return posts;
 };
 
 export const getPostsByUserId = async (userId: string) => {
-  const posts = await PostModel.find({ author: userId }).sort({ createdAt: -1 });
+  const posts = await PostModel.find({ author: userId })
+    .sort({ createdAt: -1 })
+    .populate('author', 'username profilePicture')
+    .populate('comments.author', 'username profilePicture');
   return posts;
 };
 
 export const getPostsByUsername = async (username: string) => {
-  // 1. First, find the user by their username to get their ID.
   const user = await UserModel.findOne({ username: username });
   
-  // 2. If no user is found with that username, they can't have posts. Return an empty array.
   if (!user) {
     return [];
   }
 
-  // 3. If the user was found, use their actual _id to find their posts.
-  // We also populate the author and comment details for the frontend.
   const posts = await PostModel.find({ author: user._id })
     .sort({ createdAt: -1 })
     .populate('author', 'username profilePicture')
@@ -118,7 +116,7 @@ export const getFollowingFeed = async (
     .skip(skip)
     .limit(limit)
     .populate('author', 'username profilePicture')
-    .populate('comments.author', 'username profilePicture');
+    .populate('comments.author', 'username profilePicture'); // Ensure comments are populated
 
     return posts;
 };
@@ -133,35 +131,43 @@ export const toggleLikePost = async (userId: string, postId: string) => {
 
     let updatedPost;
     if (isLiked) {
-    // --- Unlike logic ---
-    updatedPost = await PostModel.findByIdAndUpdate(
-      postId,
-      { $pull: { likes: userId } },
-      { new: true }
-    );
-    return { message: 'Post unliked successfully', post: updatedPost };
-  } else {
-    // --- Like logic ---
-    updatedPost = await PostModel.findByIdAndUpdate(
-      postId,
-      { $addToSet: { likes: userId } },
-      { new: true }
-    );
+        // --- Unlike logic ---
+        updatedPost = await PostModel.findByIdAndUpdate(
+            postId,
+            { $pull: { likes: userId } },
+            { new: true }
+        );
+        return { message: 'Post unliked successfully', post: updatedPost };
+    } else {
+        // --- Like logic ---
+        updatedPost = await PostModel.findByIdAndUpdate(
+            postId,
+            { $addToSet: { likes: userId } },
+            { new: true }
+        );
 
-    if(updatedPost && post.author.toString() !== userId) {
-    const notificationData = {
-    type: 'like',
-    message: `Your post was liked by a user.`,
-    postId: post._id,
-    postContent: post.content.substring(0, 30),
-    };
-    io.to(post.author.toString()).emit('newNotification', notificationData);
-}
-return { message: 'Post liked succesfully', post: updatedPost };
-  }
+        // --- NOTIFICATION LOGIC ---
+        if(updatedPost && post.author.toString() !== userId) {
+            // 1. Save to Database
+            const notification = await NotificationModel.create({
+                recipient: post.author,
+                sender: userId,
+                type: 'like',
+                post: postId,
+                message: 'liked your post',
+            });
+
+            // 2. Populate for real-time
+            await notification.populate('sender', 'username profilePicture');
+
+            // 3. Emit Real-time Event
+            io.to(post.author.toString()).emit('newNotification', notification);
+        }
+        // --------------------------
+
+        return { message: 'Post liked succesfully', post: updatedPost };
+    }
 };
-
-
 
 export const addCommentToPost = async (
     userId: string,
@@ -188,93 +194,85 @@ export const addCommentToPost = async (
         throw new ApiError(404, 'Post not found');
     }
 
-    if (updatedPost.author.toString() !== userId) {
-        const notificationData = {
-            message: `A user commented on your post.`,
-        };
-        io.to(updatedPost.author.toString()).emit('newNotification', notificationData);
+    // --- NOTIFICATION LOGIC ---
+    if (updatedPost.author._id.toString() !== userId) {
+        const notification = await NotificationModel.create({
+            recipient: updatedPost.author._id,
+            sender: userId,
+            type: 'comment',
+            post: postId,
+            message: `commented: "${commentText.substring(0, 20)}..."`,
+        });
+
+        await notification.populate('sender', 'username profilePicture');
+        io.to(updatedPost.author._id.toString()).emit('newNotification', notification);
     }
+    // --------------------------
 
     return updatedPost;
 };
 
 export const getTrendingPosts = async () => {
-  const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-
-  const trendingPosts = await PostModel.aggregate([
-    // Stage 1: Match documents created recently
-    {
-      $match: {
-        createdAt: { $gte: fortyEightHoursAgo }, // Corrected field name from 'created' to 'createdAt'
-      },
-    },
-    // Stage 2: Add the engagement score (this is a new, separate object)
-    {
-      $addFields: {
-        engagementScore: {
-          $add: [
-            { $size: '$likes' },
-            { $multiply: [{ $size: '$comments' }, 2] },
-          ],
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const trendingPosts = await PostModel.aggregate([
+        {
+            $match: { createdAt: { $gte: fortyEightHoursAgo } },
         },
-      },
-    },
-    // Stage 3: Sort by the new score
-    {
-      $sort: {
-        engagementScore: -1,
-      },
-    },
-    // Stage 4: Limit the results
-    {
-      $limit: 10,
-    },
-    // Stage 5: Join with the users collection
-    {
-      $lookup: {
-        from: 'users',
-        localField: 'author',
-        foreignField: '_id',
-        as: 'authorDetails',
-      },
-    },
-    // Stage 6: Deconstruct the authorDetails array
-    {
-      $unwind: '$authorDetails',
-    },
-    // Stage 7: Reshape the final output and remove sensitive fields
-    {
-      $project: {
-        content: 1,
-        imageUrl: 1,
-        likes: 1,
-        comments: 1,
-        createdAt: 1,
-        engagementScore: 1,
-        author: {
-          _id: '$authorDetails._id',
-          username: '$authorDetails.username',
-          profilePicture: '$authorDetails.profilePicture',
-        }
-      },
-    },
-  ]);
+        {
+            $addFields: {
+                engagementScore: {
+                    $add: [
+                        { $size: '$likes' },
+                        { $multiply: [{ $size: '$comments' }, 2] },
+                    ],
+                },
+            },
+        },
+        { $sort: { engagementScore: -1 } },
+        { $limit: 10 },
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'author',
+                foreignField: '_id',
+                as: 'authorDetails',
+            },
+        },
+        { $unwind: '$authorDetails' },
+        {
+            $project: {
+                content: 1,
+                imageUrl: 1,
+                mediaUrl: 1, // Added mediaUrl
+                mediaType: 1, // Added mediaType
+                likes: 1,
+                comments: 1,
+                createdAt: 1,
+                engagementScore: 1,
+                author: {
+                    _id: '$authorDetails._id',
+                    username: '$authorDetails.username',
+                    profilePicture: '$authorDetails.profilePicture',
+                }
+            },
+        },
+    ]);
 
-  return trendingPosts;
+    return trendingPosts;
 };
 
 export const getVideoReels = async (options: {page: number; limit: number}) => {
-  const { page, limit} = options;
-  const skip = (page-1) * limit;
+    const { page, limit} = options;
+    const skip = (page-1) * limit;
 
-  const reels = await PostModel.find({
-    mediaType: 'video',
-  })
+    const reels = await PostModel.find({
+        mediaType: 'video',
+    })
     .sort({ createdAt: -1  })
     .skip(skip)
     .limit(limit)
     .populate('author', 'username profilePicture')
     .populate('comments.author', 'username profilePicture');
+
     return reels;
 };
-

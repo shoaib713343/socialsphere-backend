@@ -1,6 +1,7 @@
 import { UserModel } from './auth.model';
+import { NotificationModel } from './notification.model';
 import ApiError from '../utils/ApiError';
-import { uploadToCloudinary } from './post.service';
+import uploadToCloudinary from '../config/cloudinary';
 
 export const getUserByUsername = async (username: string) => {
   const user = await UserModel.findOne({ username });
@@ -29,4 +30,22 @@ export const updateUserProfilePicture = async (userId: string, file: Express.Mul
   }
 
   return updatedUser;
+};
+
+// --- NEW NOTIFICATION FUNCTIONS ---
+export const getUserNotifications = async (userId: string) => {
+    const notifications = await NotificationModel.find({ recipient: userId })
+      .sort({ createdAt: -1 })
+      .populate('sender', 'username profilePicture')
+      .limit(20);
+    
+    return notifications;
+};
+  
+export const markNotificationsRead = async (userId: string) => {
+    await NotificationModel.updateMany(
+      { recipient: userId, read: false },
+      { $set: { read: true } }
+    );
+    return { message: 'Notifications marked as read' };
 };

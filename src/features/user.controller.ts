@@ -1,16 +1,15 @@
-
 import { Response, Request } from 'express';
 import asyncHandler from 'express-async-handler';
 import ApiError from '../utils/ApiError';
 import * as authService from './auth.service';
 import * as userService from './user.service';
 import { IUser, UserModel } from './auth.model';
+import { NotificationModel } from './notification.model'; 
+import { io } from '../socket'; // 
 
 export const getMeHandler = asyncHandler(
   async (req: Request, res: Response) => {
-   
     const user = req.user;
-
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -18,7 +17,6 @@ export const getMeHandler = asyncHandler(
     });
   }
 );
-
 
 export const addPhoneHandler = asyncHandler(
   async (req: Request, res: Response) => {
@@ -70,6 +68,22 @@ export const toggleFollowHandler = asyncHandler(
       targetUserId
     );
 
+    // --- NOTIFICATION LOGIC FOR FOLLOW ---
+    if (result.message.includes('followed successfully')) {
+        // Create Notification
+        const notification = await NotificationModel.create({
+            recipient: targetUserId,
+            sender: currentUserId,
+            type: 'follow',
+            message: 'started following you',
+        });
+        // Populate for real-time
+        await notification.populate('sender', 'username profilePicture');
+        // Emit
+        io.to(targetUserId).emit('newNotification', notification);
+    }
+    // -------------------------------------
+
     res.status(200).json({
       success: true,
       statusCode: 200,
@@ -107,3 +121,28 @@ export const updateUserProfilePictureHandler = asyncHandler(
   }
 );
 
+// --- NEW NOTIFICATION HANDLERS ---
+
+export const getNotificationsHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+        const user = req.user as IUser;
+        const notifications = await userService.getUserNotifications(user._id.toString());
+        res.status(200).json({
+            success: true,
+            statusCode: 200,
+            data: notifications
+        });
+    }
+);
+
+export const markNotificationsReadHandler = asyncHandler(
+    async (req: Request, res: Response) => {
+        const user = req.user as IUser;
+        await userService.markNotificationsRead(user._id.toString());
+        res.status(200).json({
+            success: true,
+            statusCode: 200,
+            message: 'Marked as read'
+        });
+    }
+);

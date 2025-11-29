@@ -1,3 +1,4 @@
+
 import { Router } from 'express';
 import { protect } from '../middleware/auth.middleware';
 import { addPhoneSchema, verifyOtpSchema } from './auth.validation';
@@ -8,22 +9,31 @@ import {
   addPhoneHandler,
   verifyPhoneOtpHandler,
   getUserProfileHandler,
-  updateUserProfilePictureHandler, 
+  updateUserProfilePictureHandler,
+  getNotificationsHandler, // New
+  markNotificationsReadHandler // New
 } from './user.controller';
 import validate from '../middleware/validate';
 import { upload } from '../middleware/multer.middleware';
 
 const router = Router();
 
+router.use(protect); // Apply protection to all routes
 
-router.get('/', protect, getAllUsersHandler);
-router.get('/me', protect, getMeHandler);
-router.post('/me/phone', protect, validate(addPhoneSchema), addPhoneHandler);
-router.post('/me/phone/verify', protect, validate(verifyOtpSchema), verifyPhoneOtpHandler);
+// --- SPECIFIC ROUTES (Must be first) ---
+router.get('/', getAllUsersHandler);
+router.get('/me', getMeHandler);
+router.post('/me/phone', validate(addPhoneSchema), addPhoneHandler);
+router.post('/me/phone/verify', validate(verifyOtpSchema), verifyPhoneOtpHandler);
+router.put('/me/avatar', upload.single('avatar'), updateUserProfilePictureHandler);
 
-router.put('/me/avatar',protect, upload.single('avatar'), updateUserProfilePictureHandler);
-router.post('/:userId/follow', protect, toggleFollowHandler);
+// Notification Routes (Specific)
+router.get('/notifications', getNotificationsHandler);
+router.put('/notifications/read', markNotificationsReadHandler);
 
-router.get('/:username', protect, getUserProfileHandler);
+
+// --- DYNAMIC ROUTES (Must be last) ---
+router.post('/:userId/follow', toggleFollowHandler);
+router.get('/:username', getUserProfileHandler);
 
 export default router;
